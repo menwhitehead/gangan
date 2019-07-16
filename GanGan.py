@@ -32,7 +32,7 @@ class GanGan:
         self.number_channels = self.X_train[0].shape[2]
         self.noise_vect_size = 100
         self.noise_shape = (self.noise_vect_size, )
-        # self.adam = Adam(0.0002, 0.5)
+        self.adam = Adam(0.0002, 0.5)
         self.magnification = 10
         self.seed = np.random.normal(0, 2, size=[1, self.noise_vect_size])
 
@@ -45,7 +45,7 @@ class GanGan:
         generator.add(Dense(self.image_size * self.image_size * self.number_channels, input_shape=self.noise_shape, activation = 'sigmoid'))
         generator.add(Reshape(self.image_shape))
 
-        generator.add(Dense(64, activation = 'sigmoid'))
+        # generator.add(Dense(16, activation = 'sigmoid'))
         generator.add(Dense(self.number_channels, activation = 'sigmoid'))
         # generator.add(Reshape(self.image_shape))
 
@@ -61,21 +61,21 @@ class GanGan:
 
     def buildDiscriminator(self):
         discriminator = Sequential()
-        discriminator.add(Dense(32, activation="sigmoid", input_shape=self.image_shape))
+        discriminator.add(Dense(16, activation="sigmoid", input_shape=self.image_shape))
         # discriminator.add(Conv2D(32, kernel_size=3, strides=1, activation="relu", input_shape=self.image_shape, padding="same"))
         # discriminator.add(Dense(64, activation="relu"))
 
         # discriminator.add(Conv2D(64, kernel_size=3, strides=1, activation="relu", padding="same"))
         # discriminator.add(ZeroPadding2D(padding=((0,1),(0,1))))
         discriminator.add(Flatten())
-        discriminator.add(Dense(64, activation='sigmoid'))
+        discriminator.add(Dense(16, activation='sigmoid'))
         # discriminator.add(Dense(64, activation='sigmoid'))
         discriminator.add(Dense(1, activation='sigmoid'))
         discriminator.summary()
         img = Input(shape=self.image_shape)
         validity = discriminator(img)
         self.discriminator = Model(img, validity)
-        self.discriminator.compile(loss = 'binary_crossentropy', optimizer = "adam", metrics=["accuracy"])
+        self.discriminator.compile(loss = 'binary_crossentropy', optimizer = self.adam, metrics=["accuracy"])
 
     def buildFullModel(self):
         gan_input = Input(shape=self.noise_shape)
@@ -83,7 +83,7 @@ class GanGan:
         self.discriminator.trainable = False
         gan_output = self.discriminator(discrim_input)
         self.gan = Model(gan_input, gan_output)
-        self.gan.compile(loss = 'binary_crossentropy', optimizer = "adam")
+        self.gan.compile(loss = 'binary_crossentropy', optimizer = self.adam)
 
     def generateImage(self):
         arr = self.generator.predict(self.seed)
@@ -111,15 +111,19 @@ class GanGan:
 
             generated_x = self.generator.predict(np.random.normal(0, 1, (half_batch, self.noise_vect_size)))
 
-            dloss1 = self.discriminator.train_on_batch(data_x, np.ones((half_batch, 1)))[1]
-            dloss2 = self.discriminator.train_on_batch(generated_x, np.zeros((half_batch, 1)))[1]
+            dloss1, dacc1 = self.discriminator.train_on_batch(data_x, np.ones((half_batch, 1)))
+            dloss2, dacc2 = self.discriminator.train_on_batch(generated_x, np.zeros((half_batch, 1)))
 
             gan_x = np.random.normal(0, 1, (batch_size, self.noise_vect_size))
             gan_y = np.ones((batch_size, 1))
             gloss = self.gan.train_on_batch(gan_x, gan_y)
 
+            # print generated_x
+            print self.gan.predict(gan_x)
+
             self.visualizeImage()
-            print ("%8d %10.1f%10.1f%10.5f" % (e, dloss1*100, dloss2*100, gloss))
+            # print ("%8d %10.1f%10.1f%10.5f" % (e, dloss1*100, dloss2*100, gloss))
+            print ("%8d %10.1f%10.1f%10.5f" % (e, dacc1*100, dacc2*100, gloss))
 
 
 

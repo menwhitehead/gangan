@@ -3,9 +3,6 @@ from keras.datasets import mnist
 import numpy as np
 import h5py
 import os
-
-
-
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
 from GanGan import GanGan
@@ -26,7 +23,7 @@ def loadMNIST(dataType):
 #grabbing all training inputs and begin training
 if __name__ == '__main__':
     epochs = 10000000
-    batch_size = 256
+    batch_size = 8
 
     X_train = loadMNIST("train")
     # x_train = loadFaces()
