@@ -22,6 +22,7 @@ import os
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
 from scipy.misc import imsave
+import gan_models
 
 class GanGan:
 
@@ -36,46 +37,10 @@ class GanGan:
         self.magnification = 10
         self.seed = np.random.normal(0, 2, size=[1, self.noise_vect_size])
 
-        self.buildGenerator()
-        self.buildDiscriminator()
+        self.generator = gan_models.buildGenerator(self.image_size, self.number_channels, self.noise_shape, self.image_shape)
+        self.discriminator = gan_models.buildDiscriminator(self.image_shape, self.adam)
         self.buildFullModel()
 
-    def buildGenerator(self):
-        generator = Sequential()
-        generator.add(Dense(self.image_size * self.image_size * self.number_channels, input_shape=self.noise_shape, activation = 'sigmoid'))
-        generator.add(Reshape(self.image_shape))
-
-        # generator.add(Dense(16, activation = 'sigmoid'))
-        generator.add(Dense(self.number_channels, activation = 'sigmoid'))
-        # generator.add(Reshape(self.image_shape))
-
-        # generator.add(Conv2D(64, (3, 3), strides = (1,1), padding='same', activation = 'relu'))
-        # # generator.add(Conv2D(64, (3, 3), strides = (1,1), padding='same', activation = 'relu'))
-        # generator.add(Conv2D(self.number_channels, (3, 3), strides = (1,1), padding='same', activation = 'sigmoid'))
-
-        generator.summary()
-        noise = Input(shape=self.noise_shape)
-        img = generator(noise)
-        self.generator = Model(noise, img)
-
-
-    def buildDiscriminator(self):
-        discriminator = Sequential()
-        discriminator.add(Dense(16, activation="sigmoid", input_shape=self.image_shape))
-        # discriminator.add(Conv2D(32, kernel_size=3, strides=1, activation="relu", input_shape=self.image_shape, padding="same"))
-        # discriminator.add(Dense(64, activation="relu"))
-
-        # discriminator.add(Conv2D(64, kernel_size=3, strides=1, activation="relu", padding="same"))
-        # discriminator.add(ZeroPadding2D(padding=((0,1),(0,1))))
-        discriminator.add(Flatten())
-        discriminator.add(Dense(16, activation='sigmoid'))
-        # discriminator.add(Dense(64, activation='sigmoid'))
-        discriminator.add(Dense(1, activation='sigmoid'))
-        discriminator.summary()
-        img = Input(shape=self.image_shape)
-        validity = discriminator(img)
-        self.discriminator = Model(img, validity)
-        self.discriminator.compile(loss = 'binary_crossentropy', optimizer = self.adam, metrics=["accuracy"])
 
     def buildFullModel(self):
         gan_input = Input(shape=self.noise_shape)
